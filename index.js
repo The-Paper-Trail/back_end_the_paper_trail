@@ -20,8 +20,9 @@ app.get('/addbooks', addbooksHandeler);
 app.get('/getbooks', getbooksHandeler);
 app.get("/favoritesLists", favoritesListsHandler)
 app.post('/adduser', addUserHandler);
-app.post('/addfavoritesLists', addFavoritesListsHandler);
+app.post('/addFavoritesLists', addFavoritesListsHandler);
 app.put('/updateuser/:email', updateUserHandler);
+app.delete('/removeFromFavorit', deleteFromFavorit)
 app.use(handleServerError);
 app.get('*', handlePageNotFoundError);
 
@@ -76,26 +77,35 @@ function getUserHandler(req, res) {
 
 function addUserHandler(req, res) {
   let userInfo = req.body;
-  let sql = `INSERT INTO "user_Info" (email, username, password, discription, url_img) VALUES($1,$2,$3,$4,$5);`;
-  let email = userInfo.email;
-  let values = [email, userInfo.username, userInfo.password, userInfo.discription, userInfo.url_img];
-  client.query(sql, values).then(() => {
-    let sql1 = `INSERT INTO favorites_list (email) VALUES ($1);`;
-    let value = [email]
-    client.query(sql1, value).then(
-      res.status(201).send("user has been added")
-    ).catch(error => {
-      console.log(error);
-    })
+  let sqlcheck = `SELECT "email" FROM "user_Info" WHERE email = $1;`;
+  let value = [userInfo.email];
+  client.query(sqlcheck, value).then((result) => {
+    if (result.rowCount > 0) {
+      res.status(409).json({ message: "email is already exist" })
+    } else {
+      let sql = `INSERT INTO "user_Info" (email, username, password, discription, url_img) VALUES($1,$2,$3,$4,$5);`;
+      let email = userInfo.email;
+      let values = [email, userInfo.username, userInfo.password, userInfo.discription, userInfo.url_img];
+      client.query(sql, values).then(() => {
+        let sql1 = `INSERT INTO favorites_list (email) VALUES ($1);`;
+        let value = [email]
+        client.query(sql1, value).then(
+          res.status(201).send("user has been added")
+        ).catch(error => {
+          console.log(error);
+        })
+      })
+        .catch((err) => {
+          // If the error is due to a duplicate email, return a custom response
+          if (err.code === "23505") {
+            res.status(409).send("User with this email already exists");
+          } else {
+            res.status(500).send("Error");
+          }
+        });
+    }
   })
-    .catch((err) => {
-      // If the error is due to a duplicate email, return a custom response
-      if (err.code === "23505") {
-        res.status(409).send("User with this email already exists");
-      } else {
-        res.status(500).send("Error");
-      }
-    });
+
 }
 // Function to add a book to the database
 function addbooksHandeler(req, res) {
@@ -217,6 +227,30 @@ function addFavoritesListsHandler(req, res) {
   }).catch(error => {
     console.log(error);
   });
+}
+
+function deleteFromFavorit(req, res) {
+  let listInfo = req.body;
+  let sqlcheck = `SELECT * FROM "favorite_book_list" WHERE "bookID"=$1  AND "listID" = $2;`;
+  let values = [listInfo.bookID, listInfo.listID];
+  client.query(sqlcheck, values).then((result) => {
+    if (result.rowCount > 0) {
+      let sql = `DELETE FROM "favorite_book_list" WHERE "bookID"=$1  AND "listID" = $2;`;
+      client.query(sql, values)
+        .then(
+          res.send("deleted successfully")
+        )
+        .catch((error) => {
+          res.json(error);
+        });
+    } else {
+      res.status(409).json({ message: 'is not  exist' });
+
+    }
+  })
+    .catch((error) => {
+      res.json(error);
+    });
 }
 
 // Schedule the addbooksHandeler function to run every 7 days
