@@ -7,18 +7,21 @@ const cron = require('node-cron');
 const axios = require('axios');
 require('dotenv').config();
 const app = express();
-const port = process.env.PORT ;
-const API_KEY = process.env.API_KEY ;
+const port = process.env.PORT;
+const API_KEY = process.env.API_KEY;
 const client = new Client(process.env.DATABASE);
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.post('/adduser', addUserHandler);
-app.get('/getuser', getUserHandler);
-app.put('/updateuser/:email', updateUserHandler);
+app.get('/getusers', getUsersHandler);
+app.get('/getUser', getUserHandler);
 app.get('/addbooks', addbooksHandeler);
 app.get('/getbooks', getbooksHandeler);
+app.get("/favoritesLists", favoritesListsHandler)
+app.post('/adduser', addUserHandler);
+app.post('/addfavoritesLists', addFavoritesListsHandler);
+app.put('/updateuser/:email', updateUserHandler);
 app.use(handleServerError);
 app.get('*', handlePageNotFoundError);
 
@@ -33,20 +36,13 @@ function getbooksHandeler(req, res) {
 }
 function updateUserHandler(req, res) {
   let email = req.params.email;
-  console.log("Email:", email);
-  console.log("Body:", req.body);
-
   let { discription, url_img } = req.body;
-  console.log("discription:", discription);
-  console.log("URL image:", url_img);
-
   let sql = `UPDATE "user_Info" SET discription = $1, url_img = $2 WHERE email = $3 RETURNING *;`;
   let values = [discription, url_img, email];
 
   client.query(sql, values).then(result => {
-    console.log("Result:", result.rows);
     if (result.rows.length === 0) {
-      res.status(404).send("Email not found");
+      res.status(200).send("Email not found");
     } else {
       res.send(result.rows);
     }
@@ -56,18 +52,7 @@ function updateUserHandler(req, res) {
   })
 }
 
-
-
-
-function getUserHandler(req, res) {
-
-  // let sql = `SELECT * FROM user_Info;`
-  // client.query(sql)
-  //   .then((result) => {
-  //     res.json(result.rows)
-  //   }
-
-  //   )
+function getUsersHandler(req, res) {
   let sql = `SELECT * FROM "user_Info";`;
   client.query(sql).then(result => {
     res.json(result.rows);
@@ -77,18 +62,19 @@ function getUserHandler(req, res) {
     })
 }
 
+function getUserHandler(req, res) {
+  let userInfo = req.body;
+  let sql = `SELECT * FROM "user_Info" WHERE email=$1;`;
+  let value = [userInfo.email]
+  client.query(sql, value).then(result => {
+    res.send(result.rows);
+  }
+  ).catch(error => {
+    console.log(error);
+  });
+}
+
 function addUserHandler(req, res) {
-  // let { email, username, password, discription, url_img } = req.body;
-
-  // let sql = `INSERT INTO user_Info (email, username, password, discription, url_img)
-  //            VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
-  // let values = [email, username, password, discription, url_img];
-
-  // client.query(sql, values)
-  //   .then((result) => {
-  //     console.log("User added successfully:", result.rows[0]);
-  //     res.status(201).json(result.rows);
-  //   })
   let userInfo = req.body;
   let sql = `INSERT INTO "user_Info" (email, username, password, discription, url_img) VALUES($1,$2,$3,$4,$5);`;
   let email = userInfo.email;
@@ -118,14 +104,9 @@ function addbooksHandeler(req, res) {
   for (let i = 0; i < 2; i++) {
     axios.get(url[i])
       .then((result) => {
-        // console.log(result.data.results.books);
-        // let listbooks = result.data.results.books.map((results) => {
-        //   return console.log("kkkkkkk",results.buy_links[1].url)
-        // })
         let listbooks = result.data.results.books.map((results) => {
           return new ReformatData(results.title, results.description, results.author, results.publisher, results.contributor, results.book_image, results.buy_links[1].url, results.buy_links[2].url, results.buy_links[3].url)
         })
-        // console.log(listbooks);
         const promises = [];
 
         listbooks.forEach(book => {
@@ -150,7 +131,7 @@ function addbooksHandeler(req, res) {
                     .then(result => {
                       // Book successfully inserted, return inserted row
                       if (!res.headersSent) { // check if headers have already been sent
-                        res.status(201).json(result.rows);
+                        res.status(201).json({ message: 'Book has been added to the database' });
                       }
                       return Promise.resolve();
                     })
@@ -186,13 +167,58 @@ function addbooksHandeler(req, res) {
       .catch((error) => {
         // handleServerError(error, req, res)
       })
-
-
-
   }
-
-
 }
+
+function favoritesListsHandler(req, res) {
+  let sql = `SELECT * FROM "favorites_list";`;
+  client.query(sql).then(result => {
+    res.send(result.rows);
+  }
+  ).catch(error => {
+    console.log(error);
+    res.send(error.detail);
+  });
+}
+
+function addFavoritesListsHandler(req, res) {
+  let { email, bookID } = req.body;
+  let sql = `SELECT "listID" FROM "favorites_list" WHERE email = $1;`;
+  let value = [email];
+  let sqlResult;
+  client.query(sql, value).then(result => {
+    sqlResult = result.rows[0].listID;
+    const promises = [];
+    const checkIfExistsQuery = 'SELECT * FROM "favorite_book_list" WHERE "bookID" = $1 AND "listID" = $2';
+    const checkIfExistsValues = [bookID, sqlResult];
+
+    promises.push(
+      client.query(checkIfExistsQuery, checkIfExistsValues)
+        .then((result) => {
+          if (result.rowCount > 0) {
+            // favorite book list already exists in database, return 409 status code and the message
+            res.status(409).json({ message: 'already in the list' });
+          } else {
+            // favorite book list does not exist in database, insert it
+            let sql1 = `INSERT INTO "favorite_book_list" ("bookID", "listID") VALUES($1,$2);`;
+            let values = [bookID, sqlResult];
+            client.query(sql1, values).then((results) => {
+              res.send("added to favarty");
+            }).catch((error) => {
+              res.json(error);
+            })
+          }
+        })
+        .catch(error => {
+          console.error(error);
+          Promise.reject(error);
+        })
+    );
+  }).catch(error => {
+    console.log(error);
+  });
+}
+
 // Schedule the addbooksHandeler function to run every 7 days
 cron.schedule('0 0 * * 0', () => {
   console.log('Running addbooksHandeler function');
@@ -212,29 +238,6 @@ cron.schedule('0 0 * * 0', () => {
   };
   addbooksHandeler(req, res);
 });
-
-
-
-// Schedule the addbooksHandeler function to run every 7 days
-cron.schedule('0 0 * * 0', () => {
-  console.log('Running addbooksHandeler function');
-
-  // Call the addbooksHandeler function
-  const req = {};
-  const res = {
-    sendStatus: function (code) {
-      console.log(`Response status code: ${code}`);
-    },
-    status: function (code) {
-      return this;
-    },
-    json: function (data) {
-      console.log(data);
-    }
-  };
-  addbooksHandeler(req, res);
-});
-
 
 function ReformatData(title, description, author, publisher, contributor, book_image, amazon_link, apple_books_link, barnes_and_noble_link) {
   this.title = title;
@@ -253,23 +256,6 @@ function handlePageNotFoundError(req, res) {
 }
 function handleServerError(err, req, res, next) {
   res.status(500).json({ status: 500, responseText: "Sorry, something went wrong" });
-}
-function Reformat2(id, title, release_date, poster_path, overview) {
-  this.id = id;
-  this.title = title;
-  this.release_date = release_date
-  this.poster_path = poster_path;
-  this.overview = overview;
-}
-
-
-function user(email, username, password, discription, url_img) {
-
-  this.email = email;
-  this.username = username;
-  this.password = password;
-  this.discription = discription;
-  this.url_img = url_img;
 }
 
 client.connect().then(() => {
