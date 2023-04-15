@@ -1,14 +1,16 @@
-DROP TABLE "favorite_book_list";
+DROP TABLE IF EXISTS "favorite_book_list";
 
-DROP TABLE "favorites_list";
+DROP TABLE IF EXISTS "favorites_list";
 
-DROP TABLE "books";
+DROP TABLE IF EXISTS "books";
 
-DROP TABLE "user_Info";
+DROP TABLE IF EXISTS "user_Info";
 
-DROP DATABASE "paperTrail";
+-- DROP DATABASE "paperTrail";
 
-CREATE DATABASE "paperTrail";
+-- CREATE DATABASE "paperTrail";
+
+-- psql -d paperTrail -f paperTrail.sql
 
 CREATE TABLE "favorite_book_list"(
     "id" SERIAL NOT NULL,
@@ -42,7 +44,7 @@ CREATE TABLE "user_Info"(
     "username" VARCHAR(255) NOT NULL,
     "password" VARCHAR(255) NOT NULL,
     "discription" VARCHAR(255),
-    "url_img" VARCHAR(4000) NOT NULL
+    "url_img" TEXT NOT NULL
 );
 ALTER TABLE
     "user_Info" ADD PRIMARY KEY("email");
