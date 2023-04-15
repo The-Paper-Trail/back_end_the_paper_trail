@@ -19,6 +19,8 @@ app.get('/getUser', getUserHandler);
 app.get('/addbooks', addbooksHandeler);
 app.get('/getbooks', getbooksHandeler);
 app.get("/favoritesLists", favoritesListsHandler)
+app.get("/showFavoriteLists", showFavoritesListsHandler)
+
 app.post('/adduser', addUserHandler);
 app.post('/addFavoritesLists', addFavoritesListsHandler);
 app.put('/updateuser/:email', updateUserHandler);
@@ -228,7 +230,76 @@ function addFavoritesListsHandler(req, res) {
     console.log(error);
   });
 }
+function showFavoritesListsHandler(req, res) {
+  let listInfo = req.body;
 
+  let sqlcheck = `SELECT "listID" FROM "favorites_list" WHERE  "email" = $1;`;
+  // console.log(listInfo.email);
+  let values = [listInfo.email];
+  client.query(sqlcheck, values).then((result) => {
+    if (result.rowCount > 0) {
+      // console.log(result.rows);
+      let sql = `SELECT "bookID" FROM "favorite_book_list" WHERE  "listID" = $1  ;`;
+      let value = [result.rows[0].listID];
+      // console.log(result.rows[0].listID);
+
+      // console.log("HERE",result.rows.listID);
+
+      client.query(sql, value).then((results) => {
+        // console.log(results.rows);
+        // for (let i = 0; i < results.rows.length; i++) {
+        //   // console.log(results.rows[i].bookID);
+        //   let boookId=results.rows[i].bookID
+        //   let sql = `SELECT * FROM "books" WHERE  "bookID"= $1  ;`;
+        //   let value1 = [boookId];
+        //   console.log(value1);
+        //   client.query(sql,value1).then((result)=>{
+        //     if(result.rowCount>0){
+              
+        //       console.log(result.rows)
+        //       res.json(result.rows)
+        //     }
+        //   });
+
+        //   // client.query(sql,value1).then((result1)=>{
+            
+
+        //   //   res.json(result1.rows)
+        //   // }).catch((error) => {
+        //   //   res.json(error);
+        //   // });
+        // }
+        let bookIds = [];
+for (let i = 0; i < results.rows.length; i++) {
+  bookIds.push(results.rows[i].bookID);
+}
+
+let sql = `SELECT * FROM "books" WHERE "bookID" IN (${bookIds.map((id, index) => `$${index+1}`).join(",")});`;
+client.query(sql, bookIds).then((result) => {
+  if (result.rowCount > 0) {
+    console.log(result.rows);
+    res.json(result.rows);
+  }
+}).catch((error) => {
+  res.status(409).json({ message: 'this user didnt have books in the lest' });
+
+});
+
+
+      }).catch((error) => {
+        res.json(error);
+      });
+
+    } else {
+      res.status(409).json({ message: 'is not  exist' });
+
+    }
+
+  }).catch((error) => {
+    res.json(error);
+  });
+
+}
 function deleteFromFavorit(req, res) {
   let listInfo = req.body;
   let sqlcheck = `SELECT * FROM "favorite_book_list" WHERE "bookID"=$1  AND "listID" = $2;`;
