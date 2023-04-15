@@ -5,22 +5,16 @@ const cors = require('cors');
 const { Client } = require('pg');
 const cron = require('node-cron');
 const axios = require('axios');
-
 require('dotenv').config();
-
 const app = express();
 const port = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY || 3000;
-const dbConnectionString = process.env.DATABASE;
-const client = new Client({ connectionString: dbConnectionString, });
-client.connect();
-
+const client = new Client(process.env.DATABASE);
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.get('/addbooks', addbooksHandeler);
 app.get('/getbooks', getbooksHandeler);
-
 app.use(handleServerError);
 app.get('*', handlePageNotFoundError);
 
@@ -71,7 +65,7 @@ function addbooksHandeler(req, res) {
                     .then(result => {
                       // Book successfully inserted, return inserted row
                       if (!res.headersSent) { // check if headers have already been sent
-                        res.status(201).send("all books is add");
+                        res.status(201).json(result.rows);
                       }
                       return Promise.resolve();
                     })
@@ -114,6 +108,25 @@ function addbooksHandeler(req, res) {
 
 
 }
+// Schedule the addbooksHandeler function to run every 7 days
+cron.schedule('0 0 * * 0', () => {
+  console.log('Running addbooksHandeler function');
+
+  // Call the addbooksHandeler function
+  const req = {};
+  const res = {
+    sendStatus: function (code) {
+      console.log(`Response status code: ${code}`);
+    },
+    status: function (code) {
+      return this;
+    },
+    json: function (data) {
+      console.log(data);
+    }
+  };
+  addbooksHandeler(req, res);
+});
 
 
 
@@ -165,6 +178,9 @@ function Reformat2(id, title, release_date, poster_path, overview) {
 }
 
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+client.connect().then(()=>{
+  app.listen(port, () => {
+    console.log(`Example app listening on port ${port}`);
+  })
+}).catch()
+
