@@ -26,10 +26,10 @@ CREATE TABLE "books"(
     "author" VARCHAR(255) NOT NULL,
     "publisher" VARCHAR(255) NOT NULL,
     "contributor" VARCHAR(255) NOT NULL,
-    "book_image" VARCHAR(255) NOT NULL,
-    "amazon_link" VARCHAR(255) NOT NULL,
-    "apple_books_link" VARCHAR(255) NOT NULL,
-    "barnes_and_noble_link" VARCHAR(255) NOT NULL
+    "book_image" TEXT NOT NULL,
+    "amazon_link" TEXT NOT NULL,
+    "apple_books_link" TEXT NOT NULL,
+    "barnes_and_noble_link" TEXT NOT NULL
 );
 ALTER TABLE
     "books" ADD PRIMARY KEY("bookID");
