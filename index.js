@@ -73,7 +73,7 @@ function getUserHandler(req, res) {
       let sql = `SELECT * FROM "user_Info" WHERE email=$1  AND "password" = $2;`;
       client.query(sql, values)
         .then(
-          res.send(result.rows)
+          res.status(202).send(result.rows)
         )
         .catch((error) => {
           res.json(error);
