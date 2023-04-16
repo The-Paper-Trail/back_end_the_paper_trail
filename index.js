@@ -14,14 +14,15 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/getusers', getUsersHandler);
+app.get('/getUsers', getUsersHandler);
 app.get('/getUser', getUserHandler);
-app.get('/addbooks', addbooksHandeler);
-app.get('/getbooks', getbooksHandeler);
+app.get('/addBooks', addbooksHandeler);
+app.get('/getBooks', getbooksHandeler);
 app.get("/favoritesLists", favoritesListsHandler)
-app.post('/adduser', addUserHandler);
+app.get("/showFavoriteLists", showFavoritesListsHandler)
+app.post('/addUser', addUserHandler);
 app.post('/addFavoritesLists', addFavoritesListsHandler);
-app.put('/updateuser/:email', updateUserHandler);
+app.put('/updateUser/:email', updateUserHandler);
 app.delete('/removeFromFavorit', deleteFromFavorit)
 app.use(handleServerError);
 app.get('*', handlePageNotFoundError);
@@ -68,10 +69,15 @@ function getUserHandler(req, res) {
   let sql = `SELECT * FROM "user_Info" WHERE email=$1;`;
   let value = [userInfo.email]
   client.query(sql, value).then(result => {
-    res.send(result.rows);
+    if(result.rowCount === 0){
+      res.json({ message: 'the is no user with this email' });
+    }
+    else{
+      res.send(result.rows);
+    }
   }
   ).catch(error => {
-    console.log(error);
+    res.send(error);
   });
 }
 
@@ -228,6 +234,36 @@ function addFavoritesListsHandler(req, res) {
     console.log(error);
   });
 }
+function showFavoritesListsHandler(req, res) {
+  let listInfo = req.body;
+  let sqlcheck = `SELECT "listID" FROM "favorites_list" WHERE  "email" = $1;`;
+  let values = [listInfo.email];
+  client.query(sqlcheck, values).then((result) => {
+    if (result.rowCount > 0) {
+      let sqlGetBookID = `SELECT "bookID" FROM "favorite_book_list" WHERE  "listID" = $1  ;`;
+      let value = [result.rows[0].listID];
+      client.query(sqlGetBookID, value).then((results) => {
+        let sqlgetBooks = `SELECT * FROM "books" WHERE "bookID" IN (${results.rows.map((element, index) => `$${index + 1}`)});`;
+        let values = results.rows.map((element) => { return element.bookID });
+
+        client.query(sqlgetBooks, values).then((result) => {
+          if (result.rowCount > 0) {
+            res.json(result.rows);
+          }
+        }).catch((error) => {
+          res.status(409).json({ message: 'this user didnt have books in the list' });
+        });
+      }
+      ).catch((error) => {
+        res.json(error);
+      });
+    } else {
+      res.status(409).json({ message: "email dosen's not exist" });
+    }
+  }).catch((error) => {
+    res.json(error);
+  });
+}
 
 function deleteFromFavorit(req, res) {
   let listInfo = req.body;
@@ -298,5 +334,5 @@ client.connect().then(() => {
   })
 })
   .catch(() => {
-    console.log("oppps")
+    console.log("the sql server isn't running")
   })
