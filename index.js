@@ -15,11 +15,11 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/getUsers', getUsersHandler);
-app.post('/getUser', getUserHandler);
 app.get('/addBooks', addbooksHandeler);
 app.get('/getBooks', getbooksHandeler);
 app.get("/favoritesLists", favoritesListsHandler)
-app.get("/showFavoriteLists", showFavoritesListsHandler)
+app.post('/getUser', getUserHandler);
+app.post("/showFavoriteLists", showFavoritesListsHandler)
 app.post('/addUser', addUserHandler);
 app.post('/addFavoritesLists', addFavoritesListsHandler);
 app.put('/updateUser/:email', updateUserHandler);
@@ -98,7 +98,8 @@ function addUserHandler(req, res) {
     } else {
       let sql = `INSERT INTO "user_Info" (email, username, password, discription, url_img) VALUES($1,$2,$3,$4,$5);`;
       let email = userInfo.email;
-      let values = [email, userInfo.username, userInfo.password, userInfo.discription, userInfo.url_img];
+      let imgURL =`https://img.freepik.com/free-vector/personality-disorder-concept-illustration_114360-3746.jpg`
+      let values = [email, userInfo.username, userInfo.password, userInfo.discription, userInfo.url_img==null?imgURL:userInfo.url_img];
       client.query(sql, values).then(() => {
         let sql1 = `INSERT INTO favorites_list (email) VALUES ($1);`;
         let value = [email]
