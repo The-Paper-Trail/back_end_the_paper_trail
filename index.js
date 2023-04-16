@@ -35,8 +35,8 @@ function getbooksHandeler(req, res) {
   client.query(sql).then((result) => {
     res.status(201).json(result.rows);
   }).catch()
-
 }
+
 function updateUserHandler(req, res) {
   let email = req.params.email;
   let { discription, url_img } = req.body;
@@ -315,7 +315,7 @@ function deleteFromFavorit(req, res) {
           res.json(error);
         });
     } else {
-      res.status(409).json({ message: 'is not  exist' });
+      res.status(409).json({ message: 'is not exist' });
 
     }
   })
