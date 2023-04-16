@@ -15,7 +15,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/getUsers', getUsersHandler);
-app.get('/getUser', getUserHandler);
+app.post('/getUser', getUserHandler);
 app.get('/addBooks', addbooksHandeler);
 app.get('/getBooks', getbooksHandeler);
 app.get("/favoritesLists", favoritesListsHandler)
