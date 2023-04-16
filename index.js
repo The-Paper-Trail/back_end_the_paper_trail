@@ -67,7 +67,7 @@ function getUsersHandler(req, res) {
 function getUserHandler(req, res) {
   let userInfo = req.body;
   let sql = `SELECT * FROM "user_Info" WHERE email=$1  AND "password" = $2;`;
-  let values = [userInfo.email,userInfo.password]
+  let values = [userInfo.email, userInfo.password]
   client.query(sql, values).then((result) => {
     if (result.rowCount > 0) {
       let sql = `SELECT * FROM "user_Info" WHERE email=$1  AND "password" = $2;`;
@@ -211,32 +211,28 @@ function addFavoritesListsHandler(req, res) {
   let sqlResult;
   client.query(sql, value).then(result => {
     sqlResult = result.rows[0].listID;
-    const promises = [];
     const checkIfExistsQuery = 'SELECT * FROM "favorite_book_list" WHERE "bookID" = $1 AND "listID" = $2';
     const checkIfExistsValues = [bookID, sqlResult];
-
-    promises.push(
-      client.query(checkIfExistsQuery, checkIfExistsValues)
-        .then((result) => {
-          if (result.rowCount > 0) {
-            // favorite book list already exists in database, return 409 status code and the message
-            res.status(200).json({ message: 'already in the list' });
-          } else {
-            // favorite book list does not exist in database, insert it
-            let sql1 = `INSERT INTO "favorite_book_list" ("bookID", "listID") VALUES($1,$2);`;
-            let values = [bookID, sqlResult];
-            client.query(sql1, values).then((results) => {
-              res.send("added to favarty");
-            }).catch((error) => {
-              res.json(error);
-            })
-          }
-        })
-        .catch(error => {
-          console.error(error);
-          Promise.reject(error);
-        })
-    );
+    client.query(checkIfExistsQuery, checkIfExistsValues)
+      .then((result) => {
+        if (result.rowCount > 0) {
+          // favorite book list already exists in database, return 409 status code and the message
+          res.status(200).json({ message: 'already in the list' });
+        } else {
+          // favorite book list does not exist in database, insert it
+          let sql1 = `INSERT INTO "favorite_book_list" ("bookID", "listID") VALUES($1,$2);`;
+          let values = [bookID, sqlResult];
+          client.query(sql1, values).then((results) => {
+            res.send("added to favarty");
+          }).catch((error) => {
+            res.json(error);
+          })
+        }
+      })
+      .catch(error => {
+        console.error(error);
+        Promise.reject(error);
+      })
   }).catch(error => {
     console.log(error);
   });
