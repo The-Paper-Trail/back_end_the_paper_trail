@@ -66,19 +66,26 @@ function getUsersHandler(req, res) {
 
 function getUserHandler(req, res) {
   let userInfo = req.body;
-  let sql = `SELECT * FROM "user_Info" WHERE email=$1;`;
-  let value = [userInfo.email]
-  client.query(sql, value).then(result => {
-    if(result.rowCount === 0){
-      res.json({ message: 'the is no user with this email' });
+  let sql = `SELECT * FROM "user_Info" WHERE email=$1  AND "password" = $2;`;
+  let values = [userInfo.email,userInfo.password]
+  client.query(sql, values).then((result) => {
+    if (result.rowCount > 0) {
+      let sql = `SELECT * FROM "user_Info" WHERE email=$1  AND "password" = $2;`;
+      client.query(sql, values)
+        .then(
+          res.send(result.rows)
+        )
+        .catch((error) => {
+          res.json(error);
+        });
+    } else {
+      res.status(200).json({ message: 'check email or password' });
+
     }
-    else{
-      res.send(result.rows);
-    }
-  }
-  ).catch(error => {
-    res.send(error);
-  });
+  })
+    .catch((error) => {
+      res.json(error);
+    });
 }
 
 function addUserHandler(req, res) {
@@ -87,7 +94,7 @@ function addUserHandler(req, res) {
   let value = [userInfo.email];
   client.query(sqlcheck, value).then((result) => {
     if (result.rowCount > 0) {
-      res.status(409).json({ message: "email is already exist" })
+      res.status(200).json({ message: "email is already exist" })
     } else {
       let sql = `INSERT INTO "user_Info" (email, username, password, discription, url_img) VALUES($1,$2,$3,$4,$5);`;
       let email = userInfo.email;
@@ -137,7 +144,7 @@ function addbooksHandeler(req, res) {
               .then(result => {
                 if (result.rowCount > 0) {
                   // Book already exists in database, return 409 status code and the message
-                  return res.status(409).json({ message: 'Book already exists in database' });
+                  return res.status(200).json({ message: 'Book already exists in database' });
                 } else {
                   // Book does not exist in database, insert it
                   const insertBookQuery = 'INSERT INTO books (title, description, author, publisher, contributor, book_image, amazon_link, apple_books_link, barnes_and_noble_link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *';
@@ -147,7 +154,7 @@ function addbooksHandeler(req, res) {
                     .then(result => {
                       // Book successfully inserted, return inserted row
                       if (!res.headersSent) { // check if headers have already been sent
-                        res.status(201).json({ message: 'Book has been added to the database' });
+                        res.status(200).json({ message: 'Book has been added to the database' });
                       }
                       return Promise.resolve();
                     })
@@ -213,7 +220,7 @@ function addFavoritesListsHandler(req, res) {
         .then((result) => {
           if (result.rowCount > 0) {
             // favorite book list already exists in database, return 409 status code and the message
-            res.status(409).json({ message: 'already in the list' });
+            res.status(200).json({ message: 'already in the list' });
           } else {
             // favorite book list does not exist in database, insert it
             let sql1 = `INSERT INTO "favorite_book_list" ("bookID", "listID") VALUES($1,$2);`;
@@ -251,14 +258,14 @@ function showFavoritesListsHandler(req, res) {
             res.json(result.rows);
           }
         }).catch((error) => {
-          res.status(409).json({ message: 'this user didnt have books in the list' });
+          res.status(200).json({ message: 'this user didnt have books in the list' });
         });
       }
       ).catch((error) => {
         res.json(error);
       });
     } else {
-      res.status(409).json({ message: "email dosen's not exist" });
+      res.status(200).json({ message: "email dosen's not exist" });
     }
   }).catch((error) => {
     res.json(error);
@@ -280,7 +287,7 @@ function deleteFromFavorit(req, res) {
           res.json(error);
         });
     } else {
-      res.status(409).json({ message: 'is not exist' });
+      res.status(200).json({ message: 'is not exist' });
 
     }
   })
