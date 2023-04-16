@@ -71,7 +71,7 @@ function getUserHandler(req, res) {
   client.query(sql, values).then((result) => {
     if (result.rowCount > 0) {
       let sql = `SELECT * FROM "user_Info" WHERE email=$1  AND "password" = $2;`;
-      client.status(200).query(sql, values)
+      client.query(sql, values)
         .then(
           res.send(result.rows)
         )
@@ -79,7 +79,7 @@ function getUserHandler(req, res) {
           res.json(error);
         });
     } else {
-      res.status(409).json({ message: 'check email or password' });
+      res.status(200).json({ message: 'check email or password' });
 
     }
   })
