@@ -73,14 +73,13 @@ function getUserHandler(req, res) {
       let sql = `SELECT * FROM "user_Info" WHERE email=$1  AND "password" = $2;`;
       client.query(sql, values)
         .then(
-          res.send(result.rows)
+          res.status(202).send(result.rows)
         )
         .catch((error) => {
           res.json(error);
         });
     } else {
       res.status(200).json({ message: 'check email or password' });
-
     }
   })
     .catch((error) => {
@@ -98,13 +97,13 @@ function addUserHandler(req, res) {
     } else {
       let sql = `INSERT INTO "user_Info" (email, username, password, discription, url_img) VALUES($1,$2,$3,$4,$5);`;
       let email = userInfo.email;
-      let imgURL =`https://img.freepik.com/free-vector/personality-disorder-concept-illustration_114360-3746.jpg`
-      let values = [email, userInfo.username, userInfo.password, userInfo.discription, userInfo.url_img==null?imgURL:userInfo.url_img];
+      let imgURL = `https://img.freepik.com/free-vector/personality-disorder-concept-illustration_114360-3746.jpg`
+      let values = [email, userInfo.username, userInfo.password, userInfo.discription, userInfo.url_img == null ? imgURL : userInfo.url_img];
       client.query(sql, values).then(() => {
         let sql1 = `INSERT INTO favorites_list (email) VALUES ($1);`;
         let value = [email]
         client.query(sql1, value).then(
-          res.status(201).send("user has been added")
+          res.status(201).json({ message: "is add" })
         ).catch(error => {
           console.log(error);
         })
@@ -129,7 +128,7 @@ function addbooksHandeler(req, res) {
     axios.get(url[i])
       .then((result) => {
         let listbooks = result.data.results.books.map((results) => {
-          return new ReformatData(results.title, results.description, results.author, results.publisher, results.contributor, results.book_image, results.buy_links[1].url, results.buy_links[2].url, results.buy_links[3].url)
+          return new ReformatData(results.title, results.description, results.author, results.publisher, results.contributor, results.book_image, results.buy_links[0].url, results.buy_links[1].url, results.buy_links[2].url)
         })
         const promises = [];
 
@@ -217,14 +216,12 @@ function addFavoritesListsHandler(req, res) {
     client.query(checkIfExistsQuery, checkIfExistsValues)
       .then((result) => {
         if (result.rowCount > 0) {
-          // favorite book list already exists in database, return 409 status code and the message
           res.status(200).json({ message: 'already in the list' });
         } else {
-          // favorite book list does not exist in database, insert it
           let sql1 = `INSERT INTO "favorite_book_list" ("bookID", "listID") VALUES($1,$2);`;
           let values = [bookID, sqlResult];
           client.query(sql1, values).then((results) => {
-            res.send("added to favarty");
+            res.json({ message: 'the book has been added' });
           }).catch((error) => {
             res.json(error);
           })
@@ -238,6 +235,7 @@ function addFavoritesListsHandler(req, res) {
     console.log(error);
   });
 }
+
 function showFavoritesListsHandler(req, res) {
   let listInfo = req.body;
   let sqlcheck = `SELECT "listID" FROM "favorites_list" WHERE  "email" = $1;`;
@@ -249,7 +247,6 @@ function showFavoritesListsHandler(req, res) {
       client.query(sqlGetBookID, value).then((results) => {
         let sqlgetBooks = `SELECT * FROM "books" WHERE "bookID" IN (${results.rows.map((element, index) => `$${index + 1}`)});`;
         let values = results.rows.map((element) => { return element.bookID });
-
         client.query(sqlgetBooks, values).then((result) => {
           if (result.rowCount > 0) {
             res.json(result.rows);
@@ -271,26 +268,38 @@ function showFavoritesListsHandler(req, res) {
 
 function deleteFromFavorit(req, res) {
   let listInfo = req.body;
-  let sqlcheck = `SELECT * FROM "favorite_book_list" WHERE "bookID"=$1  AND "listID" = $2;`;
-  let values = [listInfo.bookID, listInfo.listID];
-  client.query(sqlcheck, values).then((result) => {
-    if (result.rowCount > 0) {
-      let sql = `DELETE FROM "favorite_book_list" WHERE "bookID"=$1  AND "listID" = $2;`;
-      client.query(sql, values)
-        .then(
-          res.send("deleted successfully")
-        )
+  let sqlCheckEmail = `SELECT "listID" FROM "favorites_list" WHERE  "email" = $1;`;
+  let value = [listInfo.email];
+  client.query(sqlCheckEmail, value)
+    .then((result) => {
+      if (result.rowCount > 0) {
+      let sqlcheck = `SELECT * FROM "favorite_book_list" WHERE "bookID"=$1  AND "listID" = $2;`;
+      let values = [listInfo.bookID, result.rows[0].listID];
+      client.query(sqlcheck, values).then((result) => {
+        if (result.rowCount > 0) {
+          let sql = `DELETE FROM "favorite_book_list" WHERE "bookID"=$1  AND "listID" = $2;`;
+          client.query(sql, values)
+            .then(
+              res.json({ message: 'the book has been deleted' })
+            )
+            .catch((error) => {
+              res.json(error);
+            });
+        } else {
+          res.status(200).json({ message: 'is not exist' });
+        }
+      })
         .catch((error) => {
           res.json(error);
         });
-    } else {
-      res.status(200).json({ message: 'is not exist' });
-
-    }
-  })
-    .catch((error) => {
+      }
+      else{
+        res.status(200).json({ message: "email dosen's not exist" });
+      }
+    })
+    .catch(error => {
       res.json(error);
-    });
+    })
 }
 
 // Schedule the addbooksHandeler function to run every 7 days
