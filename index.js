@@ -104,7 +104,7 @@ function addUserHandler(req, res) {
         let sql1 = `INSERT INTO favorites_list (email) VALUES ($1);`;
         let value = [email]
         client.query(sql1, value).then(
-          res.status(201).send("user has been added")
+          res.status(201).json({ message: "is add" })
         ).catch(error => {
           console.log(error);
         })
@@ -129,7 +129,7 @@ function addbooksHandeler(req, res) {
     axios.get(url[i])
       .then((result) => {
         let listbooks = result.data.results.books.map((results) => {
-          return new ReformatData(results.title, results.description, results.author, results.publisher, results.contributor, results.book_image, results.buy_links[1].url, results.buy_links[2].url, results.buy_links[3].url)
+          return new ReformatData(results.title, results.description, results.author, results.publisher, results.contributor, results.book_image, results.buy_links[0].url, results.buy_links[1].url, results.buy_links[2].url)
         })
         const promises = [];
 
