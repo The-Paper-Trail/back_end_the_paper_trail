@@ -40,7 +40,8 @@ function updateUserHandler(req, res) {
   let email = req.params.email;
   let { discription, url_img } = req.body;
   let sql = `UPDATE "user_Info" SET discription = $1, url_img = $2 WHERE email = $3 RETURNING *;`;
-  let values = [discription, url_img==""?`https://files.slack.com/files-tmb/TNGRRLUMA-F053TBPUHT5-731b03107d/image_720.png`:url_img, email];
+  let imgURL = `https://img.freepik.com/free-vector/personality-disorder-concept-illustration_114360-3746.jpg`
+  let values = [discription, url_img==""?imgURL:url_img, email];
 
   client.query(sql, values).then(result => {
     if (result.rows.length === 0) {
