@@ -40,7 +40,7 @@ function updateUserHandler(req, res) {
   let email = req.params.email;
   let { discription, url_img } = req.body;
   let sql = `UPDATE "user_Info" SET discription = $1, url_img = $2 WHERE email = $3 RETURNING *;`;
-  let imgURL = `https://img.freepik.com/free-vector/personality-disorder-concept-illustration_114360-3746.jpg`
+  let imgURL = `https://image.freepik.com/free-vector/man-reading-book-with-big-books-around-white-background-colorful-isometric_18591-62675.jpg`
   let values = [discription, url_img==""?imgURL:url_img, email];
 
   client.query(sql, values).then(result => {
@@ -98,8 +98,8 @@ function addUserHandler(req, res) {
     } else {
       let sql = `INSERT INTO "user_Info" (email, username, password, discription, url_img) VALUES($1,$2,$3,$4,$5);`;
       let email = userInfo.email;
-      let imgURL = `https://img.freepik.com/free-vector/personality-disorder-concept-illustration_114360-3746.jpg`
-      let values = [email, userInfo.username, userInfo.password, userInfo.discription, userInfo.url_img == null ? imgURL : userInfo.url_img];
+      let imgURL = `https://image.freepik.com/free-vector/man-reading-book-with-big-books-around-white-background-colorful-isometric_18591-62675.jpg`
+      let values = [email, userInfo.username, userInfo.password, userInfo.discription==null?"there is no description":userInfo.discription, userInfo.url_img == null ? imgURL : userInfo.url_img];
       client.query(sql, values).then(() => {
         let sql1 = `INSERT INTO favorites_list (email) VALUES ($1);`;
         let value = [email]
